@@ -2,6 +2,7 @@
 Command line runner for the Music Recommender Simulation.
 """
 from src.recommender import load_songs, recommend_songs
+from tabulate import tabulate
 
 
 def print_recommendations(profile_name: str, recommendations: list) -> None:
@@ -15,6 +16,30 @@ def print_recommendations(profile_name: str, recommendations: list) -> None:
         print(f"    Score : {score:.2f}")
         print(f"    Why   : {explanation}")
     print()
+
+
+def print_table(profile_name: str, recommendations: list) -> None:
+    """Prints recommendations as a formatted table using tabulate."""
+    print(f"\n{'='*70}")
+    print(f"  Table View: {profile_name}")
+    print(f"{'='*70}")
+
+    rows = []
+    for i, rec in enumerate(recommendations, 1):
+        song, score, explanation = rec
+        # Trim explanation to first reason only to keep table clean
+        top_reason = explanation.split(",")[0]
+        rows.append([
+            i,
+            song["title"],
+            song["artist"],
+            song["genre"],
+            f"{score:.2f}",
+            top_reason
+        ])
+
+    headers = ["Rank", "Title", "Artist", "Genre", "Score", "Top Reason"]
+    print(tabulate(rows, headers=headers, tablefmt="rounded_outline"))
 
 
 def main() -> None:
@@ -71,10 +96,10 @@ def main() -> None:
 
     # --- Run all profiles with default mode ---
     profiles = [
-        ("High Energy Pop",           high_energy_pop),
-        ("Chill Lofi",                chill_lofi),
-        ("Deep Intense Rock",          deep_rock),
-        ("Adversarial (conflicting)",  adversarial),
+        ("High Energy Pop",          high_energy_pop),
+        ("Chill Lofi",               chill_lofi),
+        ("Deep Intense Rock",         deep_rock),
+        ("Adversarial (conflicting)", adversarial),
     ]
 
     for name, prefs in profiles:
@@ -109,7 +134,20 @@ def main() -> None:
     recs_diversity = recommend_songs(chill_lofi, songs, k=5, diversity=True)
     for i, rec in enumerate(recs_diversity, 1):
         song, score, explanation = rec
-        print(f"#{i} {song['title']} by {song['artist']} | Score: {score:.2f}")         
+        print(f"#{i} {song['title']} by {song['artist']} | Score: {score:.2f}")
+
+    # --- Challenge 4: Visual Table Output ---
+    print("\n" + "="*70)
+    print("  CHALLENGE 4 — TABLE VIEW FOR ALL PROFILES")
+    print("="*70)
+
+    for name, prefs in profiles:
+        recs = recommend_songs(prefs, songs, k=5)
+        print_table(name, recs)
+
+    # Bonus: table with diversity penalty
+    print_table("Chill Lofi — With Diversity Penalty",
+                recommend_songs(chill_lofi, songs, k=5, diversity=True))
 
 
 if __name__ == "__main__":
