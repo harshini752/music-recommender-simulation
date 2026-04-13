@@ -2,30 +2,34 @@
 
 ## Project Summary
 
-In this project you will build and explain a small music recommender system.
-
-Your goal is to:
-
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
-
-Replace this paragraph with your own summary of what your version does.
+VibeFinder 1.0 is a content-based music recommender simulation
+built in Python. It takes a user taste profile (favorite genre,
+mood, and target audio features) and scores every song in a
+small catalog to return the top 5 best matches. Each
+recommendation includes a plain-language explanation of why
+that song was suggested. The project demonstrates how real
+platforms like Spotify use weighted scoring to turn user
+preferences into personalized suggestions.
 
 ---
 
 ## How The System Works
 
-Explain your design in plain language.
+Each Song in the system stores: title, artist, genre, mood,
+energy (0.0–1.0), valence (0.0–1.0), danceability (0.0–1.0),
+acousticness (0.0–1.0), and tempo in BPM.
 
-Some prompts to answer:
+The UserProfile stores: favorite genre, favorite mood, and
+target values for energy, valence, danceability, acousticness,
+and tempo.
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+The Recommender scores each song by checking how well it
+matches the user profile. Genre and mood are binary checks
+worth the most points. Audio features like energy, valence,
+and danceability use a proximity formula — songs closer to
+the user's target value score higher than songs that are
+far away. All scores are sorted highest to lowest and the
+top K songs are returned with explanations.
 
 ## System Flowchart
 
@@ -63,7 +67,7 @@ Expected bias: Genre match dominates scoring (50/100 points),
 so non-pop songs are unlikely to appear even with strong
 numerical feature matches.
 
-You can include a simple diagram or bullet list if helpful.
+
 
 ---
 
@@ -104,25 +108,43 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+**Experiment 1 — Default weights (genre: 50, energy: 8):**
+The High Energy Pop profile correctly surfaced Sunrise City
+at 100 points. The Chill Lofi profile surfaced Library Rain
+and Midnight Coding. Results matched intuition well for
+users whose genre was well represented in the catalog.
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+**Experiment 2 — Adversarial profile (sad mood + high energy + pop):**
+When mood had no matches in the catalog, the system ignored
+mood entirely and ranked songs purely by genre and energy.
+Gym Hero ranked first despite not being sad at all. This
+exposed a clear genre dominance bias.
+
+**Experiment 3 — Halved genre weight (25) and doubled energy weight (16):**
+Results became more diverse. A rock song appeared in the
+pop profile results for the first time. The Chill Lofi
+profile shifted Spacewalk Thoughts from #4 to #3 based
+purely on energy proximity. However overall accuracy
+dropped for users with strong genre preferences.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+- The catalog only has 18 songs, which severely limits
+  variety especially for less common genres like rock or
+  classical.
+- Genre matching accounts for 50% of the total score,
+  creating a filter bubble where users rarely see songs
+  outside their stated genre.
+- The system does not consider lyrics, language, release
+  year, artist familiarity, or listening history.
+- Moods that are underrepresented in the dataset (like sad
+  or angry) produce poor results because there are simply
+  not enough matching songs.
+- The scoring treats all users as having the same preference
+  shape — there is no way to say "genre matters more to me
+  than energy."
 
 ---
 
@@ -132,10 +154,24 @@ Read and complete `model_card.md`:
 
 [**Model Card**](model_card.md)
 
-Write 1 to 2 paragraphs here about what you learned:
+Building this recommender taught me that every design
+decision in a scoring system has consequences for which
+users get good results and which ones do not. Assigning
+50 points to genre seemed reasonable at first, but testing
+revealed it essentially made genre the only thing that
+mattered. This mirrors how real platforms can trap users
+in filter bubbles — not out of malice, but because of
+weighted math that quietly favors certain preferences.
 
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+The most surprising moment was the adversarial profile
+test. I expected broken or random output but instead got
+a clear and explainable pattern: genre always wins. That
+realization changed how I think about apps like Spotify.
+What feels like magic is actually a series of human
+engineering decisions baked into weights and thresholds.
+Understanding that makes me more curious and more
+skeptical every time an algorithm tells me what to listen
+to next.
 
 
 ---
