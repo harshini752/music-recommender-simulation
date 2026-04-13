@@ -27,6 +27,42 @@ Some prompts to answer:
 - How does your `Recommender` compute a score for each song
 - How do you choose which songs to recommend
 
+## System Flowchart
+
+```mermaid
+graph TD
+    A[User Preferences] --> B[Start loop through songs CSV]
+    B --> C[score_song()]
+    C --> D[Check genre match]
+    D --> E[Check mood match]
+    E --> F[Check energy/valence/danceability proximity]
+    F --> G[Calculate total score]
+    G --> H{More songs?}
+    H -->|Yes| C
+    H -->|No| I[Sort all songs by score]
+    I --> J[Return top K recommendations]
+
+
+## Algorithm Recipe
+
+- +50 points → Genre exact match
+- +30 points → Mood exact match
+- +8 points  → Energy proximity (difference ≤ 0.1)
+- +4 points  → Energy proximity (difference ≤ 0.2)
+- +2 points  → Energy proximity (difference ≤ 0.3)
+- +6 points  → Valence proximity (difference ≤ 0.1)
+- +3 points  → Valence proximity (difference ≤ 0.2)
+- +1 point   → Valence proximity (difference ≤ 0.3)
+- +6 points  → Danceability proximity (difference ≤ 0.1)
+- +3 points  → Danceability proximity (difference ≤ 0.2)
+- +1 point   → Danceability proximity (difference ≤ 0.3)
+
+Maximum possible score: 100 points
+
+Expected bias: Genre match dominates scoring (50/100 points),
+so non-pop songs are unlikely to appear even with strong
+numerical feature matches.
+
 You can include a simple diagram or bullet list if helpful.
 
 ---
