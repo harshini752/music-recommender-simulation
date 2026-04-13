@@ -90,8 +90,6 @@ def load_songs(csv_path: str) -> List[Dict]:
 
 
 # --- Scoring Mode Strategies ---
-# Each mode applies different weights to prioritize
-# different aspects of the user's preferences.
 
 def _score_genre_first(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     """Genre-First mode: genre worth 70 points, mood 20, numerics reduced."""
@@ -272,17 +270,45 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     return (score, reasons)
 
 
+def apply_diversity_penalty(
+    scored: List[Tuple[Dict, float, str]]
+) -> List[Tuple[Dict, float, str]]:
+    """
+    Applies a diversity penalty so no artist appears more than
+    once in the top 3 results. If an artist already appears in
+    the top 3, their other songs lose 1.5 points before final sort.
+    """
+    # First pass — find artists in the natural top 3
+    top_3_artists = set()
+    for song, score, explanation in scored[:3]:
+        top_3_artists.add(song["artist"])
+
+    # Second pass — penalize duplicate artists outside top 3
+    penalized = []
+    artist_seen = {}
+    for song, score, explanation in scored:
+        artist = song["artist"]
+        artist_seen[artist] = artist_seen.get(artist, 0) + 1
+        if artist in top_3_artists and artist_seen[artist] > 1:
+            score = score - 1.5
+            explanation = explanation + ", diversity penalty (-1.5)"
+        penalized.append((song, score, explanation))
+
+    return penalized
+
+
 def recommend_songs(
     user_prefs: Dict,
     songs: List[Dict],
     k: int = 5,
-    mode: str = "default"
+    mode: str = "default",
+    diversity: bool = False
 ) -> List[Tuple[Dict, float, str]]:
     """
     Scores all songs and returns top k recommendations.
     Mode options: 'default', 'genre_first', 'mood_first', 'energy_focused'
+    Set diversity=True to apply the artist diversity penalty.
     """
-    # Pick scoring strategy based on mode
     mode_map = {
         "default":        score_song,
         "genre_first":    _score_genre_first,
@@ -297,5 +323,12 @@ def recommend_songs(
         explanation = ", ".join(reasons) if reasons else "no strong matches"
         scored.append((song, score, explanation))
 
-    ranked = sorted(scored, key=lambda x: x[1], reverse=True)
-    return ranked[:k]
+    # Sort first pass
+    scored = sorted(scored, key=lambda x: x[1], reverse=True)
+
+    # Apply diversity penalty if enabled
+    if diversity:
+        scored = apply_diversity_penalty(scored)
+        scored = sorted(scored, key=lambda x: x[1], reverse=True)
+
+    return scored[:k]

@@ -94,6 +94,23 @@ def main() -> None:
             print(f"#{i} {song['title']} | Score: {score:.2f}")
             print(f"    {explanation}")
 
+    # --- Challenge 3: Diversity Penalty Comparison ---
+    print("\n" + "="*50)
+    print("DIVERSITY PENALTY COMPARISON — Chill Lofi")
+    print("="*50)
+
+    print("\n--- Without Diversity Penalty ---")
+    recs_no_diversity = recommend_songs(chill_lofi, songs, k=5, diversity=False)
+    for i, rec in enumerate(recs_no_diversity, 1):
+        song, score, explanation = rec
+        print(f"#{i} {song['title']} by {song['artist']} | Score: {score:.2f}")
+
+    print("\n--- With Diversity Penalty ---")
+    recs_diversity = recommend_songs(chill_lofi, songs, k=5, diversity=True)
+    for i, rec in enumerate(recs_diversity, 1):
+        song, score, explanation = rec
+        print(f"#{i} {song['title']} by {song['artist']} | Score: {score:.2f}")         
+
 
 if __name__ == "__main__":
     main()
