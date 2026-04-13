@@ -82,6 +82,9 @@ def load_songs(csv_path: str) -> List[Dict]:
             row["valence"] = float(row["valence"])
             row["danceability"] = float(row["danceability"])
             row["acousticness"] = float(row["acousticness"])
+            row["speechiness"] = float(row["speechiness"])
+            row["instrumentalness"] = float(row["instrumentalness"])
+            row["popularity"] = int(row["popularity"])
             songs.append(row)
     return songs
 
@@ -136,6 +139,19 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     elif dance_diff <= 0.3:
         score += 1
         reasons.append("danceability somewhat close (+1)")
+
+    # Popularity bonus — up to 5 points
+    if song["popularity"] >= 85:
+        score += 5
+        reasons.append("highly popular (+5)")
+    elif song["popularity"] >= 70:
+        score += 3
+        reasons.append("moderately popular (+3)")
+
+    # Mood tag bonus — up to 4 points
+    if song["mood_tag"] == user_prefs.get("mood_tag"):
+        score += 4
+        reasons.append(f"mood tag match (+4)")
 
     return (score, reasons)
 
