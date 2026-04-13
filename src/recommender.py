@@ -89,22 +89,58 @@ def load_songs(csv_path: str) -> List[Dict]:
     return songs
 
 
-def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
-    """Scores a single song against user preferences using the algorithm recipe."""
+# --- Scoring Mode Strategies ---
+# Each mode applies different weights to prioritize
+# different aspects of the user's preferences.
+
+def _score_genre_first(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+    """Genre-First mode: genre worth 70 points, mood 20, numerics reduced."""
     score = 0.0
     reasons = []
 
-    # Genre match — 50 points
     if song["genre"] == user_prefs.get("genre"):
-        score += 50
-        reasons.append("genre match (+50)")
+        score += 70
+        reasons.append("genre match (+70)")
 
-    # Mood match — 30 points
     if song["mood"] == user_prefs.get("mood"):
-        score += 30
-        reasons.append("mood match (+30)")
+        score += 20
+        reasons.append("mood match (+20)")
 
-    # Energy proximity — up to 8 points
+    energy_diff = abs(song["energy"] - user_prefs.get("target_energy", 0.5))
+    if energy_diff <= 0.1:
+        score += 5
+        reasons.append("energy very close (+5)")
+    elif energy_diff <= 0.2:
+        score += 2
+        reasons.append("energy close (+2)")
+
+    if song["popularity"] >= 85:
+        score += 5
+        reasons.append("highly popular (+5)")
+    elif song["popularity"] >= 70:
+        score += 3
+        reasons.append("moderately popular (+3)")
+
+    if song["mood_tag"] == user_prefs.get("mood_tag"):
+        score += 2
+        reasons.append("mood tag match (+2)")
+
+    return (score, reasons)
+
+
+def _score_mood_first(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+    """Mood-First mode: mood worth 60 points, genre 20, numerics boosted."""
+    score = 0.0
+    reasons = []
+
+    if song["mood"] == user_prefs.get("mood"):
+        score += 60
+        reasons.append("mood match (+60)")
+
+    if song["genre"] == user_prefs.get("genre"):
+        score += 20
+        reasons.append("genre match (+20)")
+
     energy_diff = abs(song["energy"] - user_prefs.get("target_energy", 0.5))
     if energy_diff <= 0.1:
         score += 8
@@ -116,7 +152,90 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
         score += 2
         reasons.append("energy somewhat close (+2)")
 
-    # Valence proximity — up to 6 points
+    valence_diff = abs(song["valence"] - user_prefs.get("target_valence", 0.5))
+    if valence_diff <= 0.1:
+        score += 8
+        reasons.append("valence very close (+8)")
+    elif valence_diff <= 0.2:
+        score += 4
+        reasons.append("valence close (+4)")
+
+    if song["mood_tag"] == user_prefs.get("mood_tag"):
+        score += 4
+        reasons.append("mood tag match (+4)")
+
+    return (score, reasons)
+
+
+def _score_energy_focused(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+    """Energy-Focused mode: energy worth up to 40 points, genre/mood reduced."""
+    score = 0.0
+    reasons = []
+
+    energy_diff = abs(song["energy"] - user_prefs.get("target_energy", 0.5))
+    if energy_diff <= 0.05:
+        score += 40
+        reasons.append("energy perfect match (+40)")
+    elif energy_diff <= 0.1:
+        score += 30
+        reasons.append("energy very close (+30)")
+    elif energy_diff <= 0.2:
+        score += 20
+        reasons.append("energy close (+20)")
+    elif energy_diff <= 0.3:
+        score += 10
+        reasons.append("energy somewhat close (+10)")
+
+    dance_diff = abs(song["danceability"] - user_prefs.get("target_danceability", 0.5))
+    if dance_diff <= 0.1:
+        score += 15
+        reasons.append("danceability very close (+15)")
+    elif dance_diff <= 0.2:
+        score += 8
+        reasons.append("danceability close (+8)")
+
+    if song["genre"] == user_prefs.get("genre"):
+        score += 15
+        reasons.append("genre match (+15)")
+
+    if song["mood"] == user_prefs.get("mood"):
+        score += 10
+        reasons.append("mood match (+10)")
+
+    if song["popularity"] >= 85:
+        score += 5
+        reasons.append("highly popular (+5)")
+    elif song["popularity"] >= 70:
+        score += 3
+        reasons.append("moderately popular (+3)")
+
+    return (score, reasons)
+
+
+def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+    """Scores a single song using the default balanced algorithm recipe."""
+    score = 0.0
+    reasons = []
+
+    if song["genre"] == user_prefs.get("genre"):
+        score += 50
+        reasons.append("genre match (+50)")
+
+    if song["mood"] == user_prefs.get("mood"):
+        score += 30
+        reasons.append("mood match (+30)")
+
+    energy_diff = abs(song["energy"] - user_prefs.get("target_energy", 0.5))
+    if energy_diff <= 0.1:
+        score += 8
+        reasons.append("energy very close (+8)")
+    elif energy_diff <= 0.2:
+        score += 4
+        reasons.append("energy close (+4)")
+    elif energy_diff <= 0.3:
+        score += 2
+        reasons.append("energy somewhat close (+2)")
+
     valence_diff = abs(song["valence"] - user_prefs.get("target_valence", 0.5))
     if valence_diff <= 0.1:
         score += 6
@@ -128,7 +247,6 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
         score += 1
         reasons.append("valence somewhat close (+1)")
 
-    # Danceability proximity — up to 6 points
     dance_diff = abs(song["danceability"] - user_prefs.get("target_danceability", 0.5))
     if dance_diff <= 0.1:
         score += 6
@@ -140,7 +258,6 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
         score += 1
         reasons.append("danceability somewhat close (+1)")
 
-    # Popularity bonus — up to 5 points
     if song["popularity"] >= 85:
         score += 5
         reasons.append("highly popular (+5)")
@@ -148,22 +265,37 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
         score += 3
         reasons.append("moderately popular (+3)")
 
-    # Mood tag bonus — up to 4 points
     if song["mood_tag"] == user_prefs.get("mood_tag"):
         score += 4
-        reasons.append(f"mood tag match (+4)")
+        reasons.append("mood tag match (+4)")
 
     return (score, reasons)
 
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
-    """Scores all songs, sorts by score, and returns the top k recommendations."""
+def recommend_songs(
+    user_prefs: Dict,
+    songs: List[Dict],
+    k: int = 5,
+    mode: str = "default"
+) -> List[Tuple[Dict, float, str]]:
+    """
+    Scores all songs and returns top k recommendations.
+    Mode options: 'default', 'genre_first', 'mood_first', 'energy_focused'
+    """
+    # Pick scoring strategy based on mode
+    mode_map = {
+        "default":        score_song,
+        "genre_first":    _score_genre_first,
+        "mood_first":     _score_mood_first,
+        "energy_focused": _score_energy_focused,
+    }
+    scoring_fn = mode_map.get(mode, score_song)
+
     scored = []
     for song in songs:
-        score, reasons = score_song(user_prefs, song)
+        score, reasons = scoring_fn(user_prefs, song)
         explanation = ", ".join(reasons) if reasons else "no strong matches"
         scored.append((song, score, explanation))
 
-    # sorted() returns a new list without modifying original
     ranked = sorted(scored, key=lambda x: x[1], reverse=True)
     return ranked[:k]
