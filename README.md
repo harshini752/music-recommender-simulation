@@ -1,7 +1,6 @@
 # 🎵 Music Recommender Simulation
 
 ## Project Summary
-
 VibeFinder 1.0 is a content-based music recommender simulation
 built in Python. It takes a user taste profile (favorite genre,
 mood, and target audio features) and scores every song in a
@@ -9,19 +8,23 @@ small catalog to return the top 5 best matches. Each
 recommendation includes a plain-language explanation of why
 that song was suggested. The project demonstrates how real
 platforms like Spotify use weighted scoring to turn user
-preferences into personalized suggestions.
+preferences into personalized suggestions. It also includes
+four optional extensions: advanced song features, multiple
+scoring modes, an artist diversity penalty, and visual table
+output using tabulate.
 
 ---
 
 ## How The System Works
-
 Each Song in the system stores: title, artist, genre, mood,
 energy (0.0–1.0), valence (0.0–1.0), danceability (0.0–1.0),
-acousticness (0.0–1.0), and tempo in BPM.
+acousticness (0.0–1.0), tempo in BPM, speechiness,
+instrumentalness, popularity (0–100), release decade, and
+mood tag.
 
-The UserProfile stores: favorite genre, favorite mood, and
-target values for energy, valence, danceability, acousticness,
-and tempo.
+The UserProfile stores: favorite genre, favorite mood, mood
+tag, and target values for energy, valence, danceability,
+acousticness, and tempo.
 
 The Recommender scores each song by checking how well it
 matches the user profile. Genre and mood are binary checks
@@ -45,7 +48,7 @@ graph TD
     H -->|Yes| C
     H -->|No| I[Sort all songs by score]
     I --> J[Return top K recommendations]
-
+```
 
 ## Algorithm Recipe
 
@@ -60,14 +63,42 @@ graph TD
 - +6 points  → Danceability proximity (difference ≤ 0.1)
 - +3 points  → Danceability proximity (difference ≤ 0.2)
 - +1 point   → Danceability proximity (difference ≤ 0.3)
+- +5 points  → Song popularity ≥ 85
+- +3 points  → Song popularity ≥ 70
+- +4 points  → Mood tag exact match
 
-Maximum possible score: 100 points
+Maximum possible score: 109 points
 
-Expected bias: Genre match dominates scoring (50/100 points),
-so non-pop songs are unlikely to appear even with strong
-numerical feature matches.
+Expected bias: Genre match dominates scoring (50/109 points),
+so non-matching genre songs rarely appear even when other
+features are a strong match.
 
+---
 
+## Optional Extensions Completed
+
+**Challenge 1 — Advanced Song Features:**
+Added popularity (0–100), release_decade, mood_tag, speechiness,
+and instrumentalness to songs.csv. Scoring now rewards highly
+popular songs and exact mood tag matches.
+
+**Challenge 2 — Multiple Scoring Modes:**
+Three additional modes available via the mode parameter in
+recommend_songs():
+- genre_first — genre worth 70 points, mood 20, numerics reduced
+- mood_first — mood worth 60 points, genre 20, valence boosted
+- energy_focused — energy worth up to 40 points, genre/mood reduced
+
+**Challenge 3 — Diversity Penalty:**
+Added apply_diversity_penalty() which detects if an artist
+appears more than once in the natural top 3 results and
+subtracts 1.5 points from their duplicate songs before the
+final sort. Enable with diversity=True in recommend_songs().
+
+**Challenge 4 — Visual Table Output:**
+Added print_table() using the tabulate library. All profiles
+now display as formatted tables showing Rank, Title, Artist,
+Genre, Score, and Top Reason.
 
 ---
 
@@ -76,28 +107,26 @@ numerical feature matches.
 ### Setup
 
 1. Create a virtual environment (optional but recommended):
-
-   ```bash
+```bash
    python -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+```
 
-2. Install dependencies
-
+2. Install dependencies:
 ```bash
-pip install -r requirements.txt
+   pip install -r requirements.txt
+   pip install tabulate
 ```
 
 3. Run the app:
-
 ```bash
-python -m src.main
+   python -m src.main
 ```
 
 ### Running Tests
 
 Run the starter tests with:
-
 ```bash
 pytest
 ```
@@ -110,7 +139,7 @@ You can add more tests in `tests/test_recommender.py`.
 
 **Experiment 1 — Default weights (genre: 50, energy: 8):**
 The High Energy Pop profile correctly surfaced Sunrise City
-at 100 points. The Chill Lofi profile surfaced Library Rain
+at 109 points. The Chill Lofi profile surfaced Library Rain
 and Midnight Coding. Results matched intuition well for
 users whose genre was well represented in the catalog.
 
@@ -127,6 +156,19 @@ profile shifted Spacewalk Thoughts from #4 to #3 based
 purely on energy proximity. However overall accuracy
 dropped for users with strong genre preferences.
 
+**Experiment 4 — Scoring mode comparison (Challenge 2):**
+Running the same High Energy Pop profile through all three
+modes produced noticeably different rankings. Energy-focused
+mode surfaced songs from different genres that happened to
+match the energy target, showing how much a single weight
+decision shapes the entire output.
+
+**Experiment 5 — Diversity penalty (Challenge 3):**
+The Chill Lofi profile without diversity showed LoRoom
+appearing twice in the top 3 (Midnight Coding and Focus Flow).
+With diversity enabled, Focus Flow dropped from 68.00 to
+66.50 due to the penalty, creating more artist variety.
+
 ---
 
 ## Limitations and Risks
@@ -134,23 +176,21 @@ dropped for users with strong genre preferences.
 - The catalog only has 18 songs, which severely limits
   variety especially for less common genres like rock or
   classical.
-- Genre matching accounts for 50% of the total score,
+- Genre matching accounts for 50% of the base score,
   creating a filter bubble where users rarely see songs
   outside their stated genre.
-- The system does not consider lyrics, language, release
-  year, artist familiarity, or listening history.
+- The system does not consider lyrics, language, or
+  listening history.
 - Moods that are underrepresented in the dataset (like sad
   or angry) produce poor results because there are simply
   not enough matching songs.
 - The scoring treats all users as having the same preference
-  shape — there is no way to say "genre matters more to me
-  than energy."
+  shape — there is no way to say genre matters more to me
+  than energy without switching modes manually.
 
 ---
 
 ## Reflection
-
-Read and complete `model_card.md`:
 
 [**Model Card**](model_card.md)
 
@@ -172,112 +212,3 @@ engineering decisions baked into weights and thresholds.
 Understanding that makes me more curious and more
 skeptical every time an algorithm tells me what to listen
 to next.
-
-
----
-
-## 7. `model_card_template.md`
-
-Combines reflection and model card framing from the Module 3 guidance. :contentReference[oaicite:2]{index=2}  
-
-```markdown
-# 🎧 Model Card - Music Recommender Simulation
-
-## 1. Model Name
-
-Give your recommender a name, for example:
-
-> VibeFinder 1.0
-
----
-
-## 2. Intended Use
-
-- What is this system trying to do
-- Who is it for
-
-Example:
-
-> This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
-
----
-
-## 3. How It Works (Short Explanation)
-
-Describe your scoring logic in plain language.
-
-- What features of each song does it consider
-- What information about the user does it use
-- How does it turn those into a number
-
-Try to avoid code in this section, treat it like an explanation to a non programmer.
-
----
-
-## 4. Data
-
-Describe your dataset.
-
-- How many songs are in `data/songs.csv`
-- Did you add or remove any songs
-- What kinds of genres or moods are represented
-- Whose taste does this data mostly reflect
-
----
-
-## 5. Strengths
-
-Where does your recommender work well
-
-You can think about:
-- Situations where the top results "felt right"
-- Particular user profiles it served well
-- Simplicity or transparency benefits
-
----
-
-## 6. Limitations and Bias
-
-Where does your recommender struggle
-
-Some prompts:
-- Does it ignore some genres or moods
-- Does it treat all users as if they have the same taste shape
-- Is it biased toward high energy or one genre by default
-- How could this be unfair if used in a real product
-
----
-
-## 7. Evaluation
-
-How did you check your system
-
-Examples:
-- You tried multiple user profiles and wrote down whether the results matched your expectations
-- You compared your simulation to what a real app like Spotify or YouTube tends to recommend
-- You wrote tests for your scoring logic
-
-You do not need a numeric metric, but if you used one, explain what it measures.
-
----
-
-## 8. Future Work
-
-If you had more time, how would you improve this recommender
-
-Examples:
-
-- Add support for multiple users and "group vibe" recommendations
-- Balance diversity of songs instead of always picking the closest match
-- Use more features, like tempo ranges or lyric themes
-
----
-
-## 9. Personal Reflection
-
-A few sentences about what you learned:
-
-- What surprised you about how your system behaved
-- How did building this change how you think about real music recommenders
-- Where do you think human judgment still matters, even if the model seems "smart"
-
