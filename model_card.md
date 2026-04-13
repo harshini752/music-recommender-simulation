@@ -47,21 +47,20 @@ was recommended.
 ## 4. Data
 The catalog contains 18 songs stored in a CSV file. Each
 song has the following attributes: title, artist, genre,
-mood, energy, valence, danceability, acousticness, and
-tempo in BPM.
+mood, energy, valence, danceability, acousticness, tempo
+in BPM, speechiness, instrumentalness, popularity (0–100),
+release decade, and mood tag.
 
 The genres represented include pop, lofi, rock, electronic,
 reggae, and classical. Moods include happy, chill, intense,
 melancholic, and energetic.
 
 I expanded the original 10-song dataset by adding 8 more
-songs to improve diversity. However, the dataset is still
-heavily weighted toward pop and lofi, with only one or two
-songs representing genres like rock or classical. Features
-like lyrics, language, release year, and listening history
-are completely absent, which limits how well the system
-can capture real musical taste.
-
+songs and 5 new columns to improve diversity and scoring
+depth. However, the dataset is still heavily weighted toward
+pop and lofi, with only one or two songs representing genres
+like rock or classical. Features like lyrics, language, and
+listening history are completely absent.
 ---
 
 ## 5. Strengths
